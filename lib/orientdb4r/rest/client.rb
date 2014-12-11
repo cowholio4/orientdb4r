@@ -273,13 +273,28 @@ module Orientdb4r
     def query(sql, options=nil) #:nodoc:
       raise ArgumentError, 'query is blank' if blank? sql
 
-      options_pattern = { :limit => :optional }
+      options_pattern = { 
+        :limit    => :optional,
+        :language => :optional
+      }
       verify_options(options, options_pattern) unless options.nil?
 
       limit = ''
       limit = "/#{options[:limit]}" if !options.nil? and options.include?(:limit)
+      language = 'sql'
+      if( options.include?(:language) )
+        language = options[:language] 
+      end
+      command = "query"
+      method = :get
+      if( language == 'gremlin' ) 
+        command = "command"
+        method = :post
+      end
 
-      response = call_server(:method => :get, :uri => "query/#{@database}/sql/#{CGI::escape(sql)}#{limit}")
+
+    
+      response = call_server(:method => method, :uri => "#{command}/#{@database}/#{language}/#{CGI::escape(sql)}#{limit}")
       entries = process_response(response) do
         raise NotFoundError, 'record not found' if response.body =~ /ORecordNotFoundException/
       end
